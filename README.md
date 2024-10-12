@@ -8,7 +8,7 @@ The exercises were tested on different Ubuntu distributions:
 - Ubuntu 18.04 (server ARM version)
 - Ubuntu 24.04 (desktop ARM version)
 
-For Ubuntu versions greater than 18.04, you need to add the following import in the `_cluster_extraction.cpp_` file:
+For Ubuntu versions greater than 18.04, you need to add the following import in the `cluster_extraction.cpp` file:
 
 ```c++
 #include <boost/filesystem.hpp>
