@@ -35,7 +35,8 @@ To compile and run an exercise, navigate to the corresponding folder. If there i
 Now, you can create the build directory:
 
 ```bash
-  mkdir build && cd build
+  mkdir build
+  cd build
 ```
 
 Next, create the necessary files for compilation and compile:
