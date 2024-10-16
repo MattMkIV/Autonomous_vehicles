@@ -195,27 +195,6 @@ void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXY
     }
 
 #ifdef USE_PCL_LIBRARY
-    /**
-    Now we extracted the clusters out of our point cloud and saved the indices in cluster_indices.
-    To separate each cluster out of the vector<PointIndices> we have to iterate through cluster_indices,
-    create a new PointCloud for each entry and write all points of the current cluster in the PointCloud.
-    **/
-    int j = 0;
-    for (const auto& cluster_indice : cluster_indices)
-    {
-        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cluster(new pcl::PointCloud<pcl::PointXYZ>);
-
-        for (int index : cluster_indice.indices)
-            cloud_cluster->push_back((*cloud_filtered)[index]);
-
-        cloud_cluster->width = cloud_cluster->size(); //it specifies the total number of points in the cloud
-        cloud_cluster->height = 1; //it is set to 1 for unorganized datasets (thus used to check whether a dataset is organized or not).
-        cloud_cluster->is_dense = true; //it specifies if all the data in points is finite (true), or whether it might contain Inf/NaN values (false).
-
-        j++;
-    }
-
-#else
     // TODO: 5) Create the KDTree and the vector of PointIndices
     // Creating the KdTree object for the search method of the extraction
     pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>);
@@ -239,6 +218,27 @@ void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXY
     std::vector<pcl::PointIndices> cluster_indices;
     ec.extract(cluster_indices);
 
+    /**
+    Now we extracted the clusters out of our point cloud and saved the indices in cluster_indices.
+    To separate each cluster out of the vector<PointIndices> we have to iterate through cluster_indices,
+    create a new PointCloud for each entry and write all points of the current cluster in the PointCloud.
+    **/
+    int j = 0;
+    for (const auto& cluster_indice : cluster_indices)
+    {
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cluster(new pcl::PointCloud<pcl::PointXYZ>);
+
+        for (int index : cluster_indice.indices)
+            cloud_cluster->push_back((*cloud_filtered)[index]);
+
+        cloud_cluster->width = cloud_cluster->size(); //it specifies the total number of points in the cloud
+        cloud_cluster->height = 1; //it is set to 1 for unorganized datasets (thus used to check whether a dataset is organized or not).
+        cloud_cluster->is_dense = true; //it specifies if all the data in points is finite (true), or whether it might contain Inf/NaN values (false).
+
+        j++;
+    }
+
+#else
         // Optional assignment
         my_pcl::KdTree treeM;
         treeM.set_dimension(3);
