@@ -118,7 +118,7 @@ std::vector<pcl::PointIndices> euclideanCluster(typename pcl::PointCloud<pcl::Po
         if (cluster.size() > setMinClusterSize && cluster.size() < setMaxClusterSize)
         {
             pcl::PointIndices p;
-            for(int j=0; j<cluster.size(); j++)
+            for (int j = 0; j < cluster.size(); j++)
             {
                 p.indices.push_back(cluster[j]);
             }
@@ -150,7 +150,7 @@ void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXY
     sor.setLeafSize(0.25f, 0.25f, 0.25f); // set the Voxel grid leaf size (0.07 = 7cm): float x, float y, float z
     sor.filter(*cloud_filtered);
 
-    // 2) here we crop the points that are far away from us, in which we are not interested
+    // TODO: 2) here we crop the points that are far away from us, in which we are not interested
     pcl::CropBox<pcl::PointXYZ> cb(true);
     cb.setInputCloud(cloud_filtered);
     cb.setMin(Eigen::Vector4f(-20, -6, -2, 1));
@@ -164,6 +164,7 @@ void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXY
     // Create the segmentation object
     pcl::SACSegmentation<pcl::PointXYZ> seg;
 
+    // Defining Model and Method algorithm
     seg.setOptimizeCoefficients(true);
     seg.setModelType(pcl::SACMODEL_PLANE);
     seg.setMethodType(pcl::SAC_RANSAC);
@@ -280,7 +281,8 @@ void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXY
         float volume = (maxPt.x - minPt.x) * (maxPt.y - minPt.y) * (maxPt.z - minPt.z);
         float density = (num_points > 0) ? static_cast<float>(num_points) / volume : 0.0f;
 
-        if((maxPt.z - minPt.z > 1 && maxPt.z - minPt.z < 2 && density > 7 && density < 50.0)) {
+        if ((maxPt.z - minPt.z > 1 && maxPt.z - minPt.z < 2 && density > 6 && density < 50.0))
+        {
             // TODO: 8) Here you can plot the distance of each cluster w.r.t ego vehicle
             // Adding Ray, calculating the center point of the cluster
             Eigen::Vector4f centroid;
@@ -319,13 +321,16 @@ void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXY
                 maxPt.x, maxPt.y, maxPt.z
             };
 
-            if(distance < 5.00 && lidar_origin[0] > centroid[0])
+            if (distance < 5.00 && lidar_origin[0] > centroid[0])
             {
                 renderer.RenderBox(box, j, colors[4]);
-            } else if (distance < 5.00 && lidar_origin[0] < centroid[0])
+            }
+            else if (distance < 5.00 && lidar_origin[0] < centroid[0])
             {
                 renderer.RenderBox(box, j, colors[3]);
-            } else {
+            }
+            else
+            {
                 renderer.RenderBox(box, j, colors[6]);
             }
 
@@ -370,16 +375,19 @@ int main(int argc, char* argv[])
         auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
 
         std::string color;
-        if (elapsedTime.count() > 10) {
+        if (elapsedTime.count() > 10)
+        {
             color = "\033[31m"; // Red
-        } else {
+        }
+        else
+        {
             color = "\033[32m"; // Green
         }
         std::string resetColor = "\033[0m"; // Reset to default color
 
         std::cout << "Loaded "
-                  << input_cloud->points.size() << " data points from " << streamIterator->string() <<
-                  " plane segmentation took " << color << elapsedTime.count() << " milliseconds" << resetColor << std::endl;
+            << input_cloud->points.size() << " data points from " << streamIterator->string() <<
+            " plane segmentation took " << color << elapsedTime.count() << " milliseconds" << resetColor << std::endl;
 
         ++streamIterator;
         if (streamIterator == stream.end())
