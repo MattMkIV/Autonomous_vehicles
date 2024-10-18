@@ -98,8 +98,8 @@ std::vector<pcl::PointIndices> euclideanCluster(typename pcl::PointCloud<pcl::Po
 {
     my_visited_set_t visited{}; //already visited points
     std::vector<pcl::PointIndices> clusters; //vector of PointIndices that will contain all the clusters
-    std::vector<int> cluster;
-    //vector of int that is used to store the points that the function proximity will give me back
+    std::vector<int> cluster; //vector of int that is used to store the points that the function proximity will give me back
+
     //for every point of the cloud
     //  if the point has not been visited (use the function called "find")
     //    find clusters using the proximity function
@@ -109,13 +109,36 @@ std::vector<pcl::PointIndices> euclideanCluster(typename pcl::PointCloud<pcl::Po
     //    end if
     //  end if
     //end for
+    for (int i = 0; i < cloud->size(); i++)
+    {
+        if (visited.find(i) == visited.end())
+        {
+            proximity(cloud, i, tree, distanceTol, visited, cluster, setMaxClusterSize);
+        }
+        if (cluster.size() > setMinClusterSize && cluster.size() < setMaxClusterSize)
+        {
+            pcl::PointIndices p;
+            for(int j=0; j<cluster.size(); j++)
+            {
+                p.indices.push_back(cluster[j]);
+            }
+            clusters.push_back(p);
+        }
+        cluster.clear();
+    }
     return clusters;
 }
 
 void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud)
 {
     std::vector<Color> colors = {
-        Color(1, 0, 0), Color(1, 1, 0), Color(0, 0, 1), Color(1, 0, 1), Color(0, 1, 1), Color(0.2f, 0.2f, 0.2f)
+        Color(1, 0, 0),
+        Color(1, 1, 0),
+        Color(0, 0, 1),
+        Color(1, 0, 1),
+        Color(0, 1, 1),
+        Color(0.2f, 0.2f, 0.2f),
+        Color(0.941f, 0.443f, 0.404f) // Add the color here
     };
 
     // TODO: 1) Downsample the dataset
@@ -144,18 +167,17 @@ void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXY
     seg.setOptimizeCoefficients(true);
     seg.setModelType(pcl::SACMODEL_PLANE);
     seg.setMethodType(pcl::SAC_RANSAC);
-    seg.setMaxIterations(1000);
+    seg.setMaxIterations(400);
     seg.setDistanceThreshold(0.2);
-    // Determines how close a point must be to the model in order to be considered an inlier
 
+    // Determines how close a point must be to the model in order to be considered an inlier
     int i = 0, nr_points = (int)cloud_filtered->size();
 
     pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients()); //the resultant model coefficients
-
     pcl::PointIndices::Ptr inliers(new pcl::PointIndices());
 
-    // While 40% of the original cloud is still there
-    while (cloud_filtered->size() > 0.4 * nr_points)
+    // While 60% of the original cloud is still there
+    while (cloud_filtered->size() > 0.7 * nr_points)
     {
         // Segment the largest planar component from the remaining cloud
         seg.setInputCloud(cloud_filtered);
@@ -180,6 +202,7 @@ void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXY
         //PCL defines a way to define a region of interest / list of point indices that the algorithm should operate on, rather than the entire cloud, via setIndices.
         extract.setIndices(inliers);
         extract.setNegative(false);
+
         // Retrieve indices to all points in cloud_filtered but only those referenced by inliers:
         extract.filter(*cloud_segmented); // We effectively retrieve JUST the plane
 
@@ -209,49 +232,29 @@ void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXY
     ec.setClusterTolerance(0.40);
 
     //We impose that the clusters found must have at least setMinClusterSize() points and maximum setMaxClusterSize() points
-    ec.setMinClusterSize(100);
-    ec.setMaxClusterSize(3000);
+    ec.setMinClusterSize(25);
+    ec.setMaxClusterSize(400);
     ec.setSearchMethod(tree);
     ec.setInputCloud(cloud_filtered);
 
     // Here we are creating a vector of PointIndices, which contain the actual index information in a vector<int>. The indices of each detected cluster are saved here.
     std::vector<pcl::PointIndices> cluster_indices;
     ec.extract(cluster_indices);
-
-    /**
-    Now we extracted the clusters out of our point cloud and saved the indices in cluster_indices.
-    To separate each cluster out of the vector<PointIndices> we have to iterate through cluster_indices,
-    create a new PointCloud for each entry and write all points of the current cluster in the PointCloud.
-    **/
-    int j = 0;
-    for (const auto& cluster_indice : cluster_indices)
-    {
-        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cluster(new pcl::PointCloud<pcl::PointXYZ>);
-
-        for (int index : cluster_indice.indices)
-            cloud_cluster->push_back((*cloud_filtered)[index]);
-
-        cloud_cluster->width = cloud_cluster->size(); //it specifies the total number of points in the cloud
-        cloud_cluster->height = 1; //it is set to 1 for unorganized datasets (thus used to check whether a dataset is organized or not).
-        cloud_cluster->is_dense = true; //it specifies if all the data in points is finite (true), or whether it might contain Inf/NaN values (false).
-
-        j++;
-    }
-
 #else
-        // Optional assignment
-        my_pcl::KdTree treeM;
-        treeM.set_dimension(3);
-        setupKdtree(cloud_filtered, &treeM, 3);
-        cluster_indices = euclideanCluster(cloud_filtered, &treeM, clusterTolerance, setMinClusterSize, setMaxClusterSize);
-#endif
+    // Here we are creating a vector of PointIndices, which contain the actual index information in a vector<int>. The indices of each detected cluster are saved here.
+    std::vector<pcl::PointIndices> cluster_indices;
 
+    my_pcl::KdTree treeM;
+    treeM.set_dimension(3);
+    setupKdtree(cloud_filtered, &treeM, 3);
+    cluster_indices = euclideanCluster(cloud_filtered, &treeM, 0.4, 100, 1000);
+#endif
     /**Now we extracted the clusters out of our point cloud and saved the indices in cluster_indices.
 
     To separate each cluster out of the vector<PointIndices> we have to iterate through cluster_indices, create a new PointCloud for each entry and write all points of the current cluster in the PointCloud.
     Compute euclidean distance
     **/
-    j = 0;
+    int j = 0;
     int clusterId = 0;
     Eigen::Vector3f lidar_origin(0.0f, 0.0f, 0.0f);
 
@@ -273,54 +276,62 @@ void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXY
         pcl::PointXYZ minPt, maxPt;
         getMinMax3D(*cloud_cluster, minPt, maxPt);
 
-        // TODO: 8) Here you can plot the distance of each cluster w.r.t ego vehicle
-        // Adding Ray, calculating the center point of the cluster
-        Eigen::Vector4f centroid;
-        compute3DCentroid(*cloud_cluster, centroid);
+        size_t num_points = cloud_cluster->size();
+        float volume = (maxPt.x - minPt.x) * (maxPt.y - minPt.y) * (maxPt.z - minPt.z);
+        float density = (num_points > 0) ? static_cast<float>(num_points) / volume : 0.0f;
 
-        pcl::PointCloud<pcl::PointXYZ>::Ptr centerCloud(new pcl::PointCloud<pcl::PointXYZ>);
+        if((maxPt.z - minPt.z > 1 && maxPt.z - minPt.z < 2 && density > 7 && density < 50.0)) {
+            // TODO: 8) Here you can plot the distance of each cluster w.r.t ego vehicle
+            // Adding Ray, calculating the center point of the cluster
+            Eigen::Vector4f centroid;
+            compute3DCentroid(*cloud_cluster, centroid);
 
-        // Create the center point and add it to the new cloud
-        pcl::PointXYZ centerPoint;
-        centerPoint.x = centroid[0];
-        centerPoint.y = centroid[1];
-        centerPoint.z = centroid[2];
+            pcl::PointCloud<pcl::PointXYZ>::Ptr centerCloud(new pcl::PointCloud<pcl::PointXYZ>);
 
-        centerCloud->points.push_back(centerPoint);
-        centerCloud->width = 1; // Set width to 1 since we have one point
-        centerCloud->height = 1; // Set height to 1 for a single point cloud
-        centerCloud->is_dense = true;
+            // Create the center point and add it to the new cloud
+            pcl::PointXYZ centerPoint;
+            centerPoint.x = centroid[0];
+            centerPoint.y = centroid[1];
+            centerPoint.z = centroid[2];
 
-        renderer.RenderRays(lidar_origin, centerCloud);
+            centerCloud->points.push_back(centerPoint);
+            centerCloud->width = 1; // Set width to 1 since we have one point
+            centerCloud->height = 1; // Set height to 1 for a single point cloud
+            centerCloud->is_dense = true;
 
-        // Distance between the origin lidar point and the center of the cluster
-        float distance = sqrt(pow(lidar_origin[0] - centerPoint.x, 2) +
-            pow(lidar_origin[1] - centerPoint.y, 2) +
-            pow(lidar_origin[2] - centerPoint.z, 2));
+            renderer.RenderRays(lidar_origin, centerCloud);
 
-        std::ostringstream stream;
-        stream << std::fixed << std::setprecision(2) << distance;
-        std::string r = stream.str();
+            // Distance between the origin lidar point and the center of the cluster
+            float distance = sqrt(pow(lidar_origin[0] - centerPoint.x, 2) +
+                pow(lidar_origin[1] - centerPoint.y, 2) +
+                pow(lidar_origin[2] - centerPoint.z, 2));
 
-        renderer.addText(centroid[0], centroid[1], centroid[2], r);
+            std::ostringstream stream;
+            stream << std::fixed << std::setprecision(2) << distance;
+            std::string r = stream.str();
 
-        //TODO: 9) Here you can color the vehicles that are both in front and 5 meters away from the ego vehicle
-        //please take a look at the function RenderBox to see how to color the box
-        Box box{
-            minPt.x, minPt.y, minPt.z,
-            maxPt.x, maxPt.y, maxPt.z
-        };
+            renderer.addText(centroid[0], centroid[1], centroid[2], r);
 
-        if(distance < 5.00 && lidar_origin[0] > centroid[0])
-        {
-            renderer.RenderBox(box, j, colors[4]);
-        } else if (distance < 5.00 && lidar_origin[0] < centroid[0])
-        {
-            renderer.RenderBox(box, j, colors[3]);
+            //TODO: 9) Here you can color the vehicles that are both in front and 5 meters away from the ego vehicle
+            //please take a look at the function RenderBox to see how to color the box
+            Box box{
+                minPt.x, minPt.y, minPt.z,
+                maxPt.x, maxPt.y, maxPt.z
+            };
+
+            if(distance < 5.00 && lidar_origin[0] > centroid[0])
+            {
+                renderer.RenderBox(box, j, colors[4]);
+            } else if (distance < 5.00 && lidar_origin[0] < centroid[0])
+            {
+                renderer.RenderBox(box, j, colors[3]);
+            } else {
+                renderer.RenderBox(box, j, colors[6]);
+            }
+
+            ++clusterId;
+            j++;
         }
-
-        ++clusterId;
-        j++;
     }
 }
 
@@ -336,7 +347,7 @@ int main(int argc, char* argv[])
     pcl::PointCloud<pcl::PointXYZ>::Ptr input_cloud(new pcl::PointCloud<pcl::PointXYZ>);
 
     std::vector<boost::filesystem::path> stream(
-        boost::filesystem::directory_iterator{"/home/linux/Desktop/Autonomous_vehicles/assignment_1/dataset_1"},
+        boost::filesystem::directory_iterator{"/home/linux/Desktop/Autonomous_vehicles/assignment_1/dataset_2"},
         boost::filesystem::directory_iterator{});
 
     // sort files in ascending (chronological) order
