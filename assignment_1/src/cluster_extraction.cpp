@@ -42,7 +42,7 @@ This function computes the nearest neighbors and builds the clusters
         + cloud: Point cloud to be explored
         + target_ndx: i-th point to visit
         + tree: kd tree for searching neighbors
-        + distanceTol: Distance tolerance to build the clusters 
+        + distanceTol: Distance tolerance to build the clusters
         + visited: Visited points --> typedef std::unordered_set<int> my_visited_set_t;
         + cluster: Here we add points that will represent the cluster
         + max: Max cluster size
@@ -352,7 +352,7 @@ int main(int argc, char* argv[])
     pcl::PointCloud<pcl::PointXYZ>::Ptr input_cloud(new pcl::PointCloud<pcl::PointXYZ>);
 
     std::vector<boost::filesystem::path> stream(
-        boost::filesystem::directory_iterator{"/home/linux/Desktop/Autonomous_vehicles/assignment_1/dataset_2"},
+        boost::filesystem::directory_iterator{"/home/linux/Desktop/Autonomous_vehicles/assignment_1/datasets/dataset_2"},
         boost::filesystem::directory_iterator{});
 
     // sort files in ascending (chronological) order
