@@ -177,7 +177,7 @@ void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXY
     pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients()); //the resultant model coefficients
     pcl::PointIndices::Ptr inliers(new pcl::PointIndices());
 
-    // While 60% of the original cloud is still there
+    // While 70% of the original cloud is still there
     while (cloud_filtered->size() > 0.7 * nr_points)
     {
         // Segment the largest planar component from the remaining cloud
@@ -375,7 +375,7 @@ int main(int argc, char* argv[])
         auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
 
         std::string color;
-        if (elapsedTime.count() > 10)
+        if (elapsedTime.count() > 20)
         {
             color = "\033[31m"; // Red
         }
