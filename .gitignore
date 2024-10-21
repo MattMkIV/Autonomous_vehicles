@@ -1,6 +1,7 @@
 build
 ./assignment_1/cmake-build-debug
-./assignment_1/dataset_1
-./assignment_1/dataset_2
-./assignment_1/dataset_1.rar
-./assignment_1/dataset_2.rar
+./assignment_1/datasets/dataset_1
+./assignment_1/datasets/dataset_2
+./assignment_1/datasets/dataset_1.rar
+./assignment_1/datasets/dataset_2.rar
+.idea
