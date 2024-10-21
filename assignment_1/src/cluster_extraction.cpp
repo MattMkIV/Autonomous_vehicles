@@ -129,8 +129,9 @@ std::vector<pcl::PointIndices> euclideanCluster(typename pcl::PointCloud<pcl::Po
     return clusters;
 }
 
-void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud)
+void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, const string& showPlane = 0)
 {
+    // Defining colors for rendering
     std::vector<Color> colors = {
         Color(1, 0, 0),
         Color(1, 1, 0),
@@ -142,15 +143,16 @@ void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXY
     };
 
     // TODO: 1) Downsample the dataset
+    // Defining the point cloud which will be updated through the steps
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
 
-    //Voxel filtering, point cloud reduction
+    // Voxel filtering, point cloud reduction
     pcl::VoxelGrid<pcl::PointXYZ> sor;
     sor.setInputCloud(cloud);
-    sor.setLeafSize(0.25f, 0.25f, 0.25f); // set the Voxel grid leaf size (0.07 = 7cm): float x, float y, float z
-    sor.filter(*cloud_filtered);
+    sor.setLeafSize(0.25f, 0.25f, 0.25f); // set the Voxel grid leaf size (0.25 = 25cm): float x, float y, float z
+    sor.filter(*cloud_filtered); // Applying filter
 
-    // TODO: 2) here we crop the points that are far away from us, in which we are not interested
+    // TODO: 2) Here we crop the points that are far away from us, in which we are not interested
     pcl::CropBox<pcl::PointXYZ> cb(true);
     cb.setInputCloud(cloud_filtered);
     cb.setMin(Eigen::Vector4f(-20, -6, -2, 1));
@@ -158,7 +160,9 @@ void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXY
     cb.filter(*cloud_filtered);
 
     // TODO: 3) Segmentation with inliers removal and apply RANSAC
+    // Defining a new point cloud to apply the plane catting
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_aux(new pcl::PointCloud<pcl::PointXYZ>);
+    // Point cloud containing the plane
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_segmented(new pcl::PointCloud<pcl::PointXYZ>);
 
     // Create the segmentation object
@@ -169,15 +173,15 @@ void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXY
     seg.setModelType(pcl::SACMODEL_PLANE);
     seg.setMethodType(pcl::SAC_RANSAC);
     seg.setMaxIterations(400);
-    seg.setDistanceThreshold(0.2);
+    seg.setDistanceThreshold(0.2); // 0.2 instead of 1 crease the accuracy of plane detection
 
     // Determines how close a point must be to the model in order to be considered an inlier
     int i = 0, nr_points = (int)cloud_filtered->size();
 
-    pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients()); //the resultant model coefficients
+    pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients()); // The resultant model coefficients
     pcl::PointIndices::Ptr inliers(new pcl::PointIndices());
 
-    // While 70% of the original cloud is still there
+    // While 70% of the original cloud is still there, higher value -> lower planar removal
     while (cloud_filtered->size() > 0.7 * nr_points)
     {
         // Segment the largest planar component from the remaining cloud
@@ -187,7 +191,7 @@ void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXY
         [out]	inliers	the resultant point indices that support the model found (inliers)
         [out]	model_coefficients	the resultant model coefficients that describe the plane
         */
-        seg.segment(*inliers, *coefficients); //we get one of the planes and we put it into the inliers variable
+        seg.segment(*inliers, *coefficients); // We get one of the planes, and we put it into the inliers variable
         if (inliers->indices.size() == 0)
         {
             std::cerr << "Could not estimate a planar model for the given dataset." << std::endl;
@@ -200,15 +204,17 @@ void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXY
         // Extract the inliers (here we extract the points of the plane moving the indices representing the plane to cloud_segmented)
         extract.setInputCloud(cloud_filtered);
 
-        //PCL defines a way to define a region of interest / list of point indices that the algorithm should operate on, rather than the entire cloud, via setIndices.
+        // PCL defines a way to define a region of interest / list of point indices that the algorithm should operate on,
+        // rather than the entire cloud, via setIndices
         extract.setIndices(inliers);
         extract.setNegative(false);
 
         // Retrieve indices to all points in cloud_filtered but only those referenced by inliers:
         extract.filter(*cloud_segmented); // We effectively retrieve JUST the plane
 
-        // Rendering the plane removed in CloudSegmented
-        renderer.RenderPointCloud(cloud_segmented, "CloudSegmented", colors[5]);
+        // Rendering the plane removed in CloudSegmented if showPlane == 1
+        if (showPlane == "1")
+            renderer.RenderPointCloud(cloud_segmented, "CloudSegmented", colors[5]);
 
         // Here we will extract the plane from the original filtered point cloud
         extract.setNegative(true); // original cloud - plane
@@ -343,6 +349,12 @@ void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXY
 
 int main(int argc, char* argv[])
 {
+    std::string showPlane;
+    if (argc > 1)
+         showPlane= argv[1];
+    else
+        showPlane = "0";
+
     Renderer renderer;
     renderer.InitCamera(CameraAngle::XY);
 
@@ -369,7 +381,7 @@ int main(int argc, char* argv[])
         reader.read(streamIterator->string(), *input_cloud);
         auto startTime = std::chrono::steady_clock::now();
 
-        ProcessAndRenderPointCloud(renderer, input_cloud);
+        ProcessAndRenderPointCloud(renderer, input_cloud, showPlane);
 
         auto endTime = std::chrono::steady_clock::now();
         auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
@@ -395,4 +407,5 @@ int main(int argc, char* argv[])
 
         renderer.SpinViewerOnce();
     }
+
 }
