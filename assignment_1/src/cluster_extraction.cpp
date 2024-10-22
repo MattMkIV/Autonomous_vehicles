@@ -133,13 +133,14 @@ void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXY
 {
     // Defining colors for rendering
     std::vector<Color> colors = {
-        Color(1, 0, 0),
-        Color(1, 1, 0),
-        Color(0, 0, 1),
-        Color(1, 0, 1),
-        Color(0, 1, 1),
-        Color(0.2f, 0.2f, 0.2f),
-        Color(0.941f, 0.443f, 0.404f) // Add the color here
+        Color(1, 0, 0),           // 0. Red
+        Color(1, 1, 0),           // 1. Yellow
+        Color(0, 0, 1),           // 2. Blue
+        Color(1, 0, 1),           // 3. Magenta
+        Color(0, 1, 1),           // 4. Cyan
+        Color(0.2f, 0.2f, 0.2f),  // 5. Dark Gray
+        Color(0.8f, 0.8f, 0.3f),         // 6. Darker Light Yellow
+        Color(1, 1, 0.5f),         // 7. Light Yellow
     };
 
     // TODO: 1) Downsample the dataset
@@ -248,7 +249,8 @@ void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXY
     std::vector<pcl::PointIndices> cluster_indices;
     ec.extract(cluster_indices);
 #else
-    // Here we are creating a vector of PointIndices, which contain the actual index information in a vector<int>. The indices of each detected cluster are saved here.
+    // Here we are creating a vector of PointIndices, which contain the actual index information in a vector<int>.
+    // The indices of each detected cluster are saved here.
     std::vector<pcl::PointIndices> cluster_indices;
 
     my_pcl::KdTree treeM;
@@ -327,18 +329,21 @@ void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXY
                 maxPt.x, maxPt.y, maxPt.z
             };
 
-            if (distance < 5.00 && lidar_origin[0] > centroid[0])
-            {
-                renderer.RenderBox(box, j, colors[4]);
-            }
-            else if (distance < 5.00 && lidar_origin[0] < centroid[0])
-            {
-                renderer.RenderBox(box, j, colors[3]);
-            }
-            else
-            {
+            // Check if the distance between the car and box is 5<distance<10 (Dark yellow color)
+            if(distance > 5 && distance < 10)
                 renderer.RenderBox(box, j, colors[6]);
-            }
+
+            // Check if the distance is >10 (Light Yellow)
+            else if(distance > 10)
+                renderer.RenderBox(box, j, colors[7]);
+
+            // Checks if the box is in front of the car (Cyan)
+            else if (distance < 5.00 && lidar_origin[0] > centroid[0])
+                renderer.RenderBox(box, j, colors[4]);
+
+            // Otherwise if the box is in the back of the car (Magenta)
+            else if (distance < 5.00 && lidar_origin[0] < centroid[0])
+                renderer.RenderBox(box, j, colors[3]);
 
             ++clusterId;
             j++;

@@ -42,7 +42,6 @@ Finally, launch the program:
 ```bash
   ./cluster_extraction <param>
 ```
-
-Where param could be:
+Where <param> could be:
 - 1 to enable the plane rendering
 - 0 otherwise
