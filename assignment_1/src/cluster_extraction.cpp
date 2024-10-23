@@ -150,7 +150,7 @@ void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXY
     // Voxel filtering, point cloud reduction
     pcl::VoxelGrid<pcl::PointXYZ> sor;
     sor.setInputCloud(cloud);
-    sor.setLeafSize(0.25f, 0.25f, 0.25f); // set the Voxel grid leaf size (0.25 = 25cm): float x, float y, float z
+    sor.setLeafSize(0.30f, 0.30f, 0.30f); // set the Voxel grid leaf size (0.25 = 25cm): float x, float y, float z
     sor.filter(*cloud_filtered); // Applying filter
 
     // TODO: 2) Here we crop the points that are far away from us, in which we are not interested
@@ -183,7 +183,7 @@ void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXY
     pcl::PointIndices::Ptr inliers(new pcl::PointIndices());
 
     // While 70% of the original cloud is still there, higher value -> lower planar removal
-    while (cloud_filtered->size() > 0.7 * nr_points)
+    while (cloud_filtered->size() > 0.5 * nr_points)
     {
         // Segment the largest planar component from the remaining cloud
         seg.setInputCloud(cloud_filtered);
@@ -241,7 +241,7 @@ void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXY
 
     //We impose that the clusters found must have at least setMinClusterSize() points and maximum setMaxClusterSize() points
     ec.setMinClusterSize(25);
-    ec.setMaxClusterSize(400);
+    ec.setMaxClusterSize(500);
     ec.setSearchMethod(tree);
     ec.setInputCloud(cloud_filtered);
 
@@ -270,7 +270,6 @@ void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXY
     for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin(); it != cluster_indices.end(); ++it)
     {
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cluster(new pcl::PointCloud<pcl::PointXYZ>);
-
         for (std::vector<int>::const_iterator pit = it->indices.begin(); pit != it->indices.end(); ++pit)
             cloud_cluster->push_back((*cloud_filtered)[*pit]);
 
@@ -279,7 +278,7 @@ void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXY
         cloud_cluster->is_dense = true;
 
         // TODO: 7) render the cluster and plane without rendering the original cloud
-        renderer.RenderPointCloud(cloud_filtered, "FilteredCloud" + std::to_string(clusterId), colors[1]);
+        renderer.RenderPointCloud(cloud_filtered, "FilteredCloud" + std::to_string(j), colors[1]);
 
         //Here we create the bounding box on the detected clusters
         pcl::PointXYZ minPt, maxPt;
