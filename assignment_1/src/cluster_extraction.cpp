@@ -22,7 +22,7 @@
 
 using namespace std;
 
-//#define USE_PCL_LIBRARY
+#define USE_PCL_LIBRARY
 using namespace lidar_obstacle_detection;
 
 typedef std::unordered_set<int> my_visited_set_t;
