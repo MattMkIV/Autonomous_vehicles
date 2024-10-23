@@ -22,7 +22,7 @@
 
 using namespace std;
 
-#define USE_PCL_LIBRARY
+//#define USE_PCL_LIBRARY
 using namespace lidar_obstacle_detection;
 
 typedef std::unordered_set<int> my_visited_set_t;
@@ -256,7 +256,7 @@ void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXY
     my_pcl::KdTree treeM;
     treeM.set_dimension(3);
     setupKdtree(cloud_filtered, &treeM, 3);
-    cluster_indices = euclideanCluster(cloud_filtered, &treeM, 0.4, 100, 1000);
+    cluster_indices = euclideanCluster(cloud_filtered, &treeM, 0.4, 25, 500);
 #endif
     /**Now we extracted the clusters out of our point cloud and saved the indices in cluster_indices.
 
