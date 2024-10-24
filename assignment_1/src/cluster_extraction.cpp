@@ -278,7 +278,6 @@ void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXY
         cloud_cluster->is_dense = true;
 
         // TODO: 7) render the cluster and plane without rendering the original cloud
-        renderer.RenderPointCloud(cloud_filtered, "FilteredCloud" + std::to_string(j), colors[1]);
 
         //Here we create the bounding box on the detected clusters
         pcl::PointXYZ minPt, maxPt;
@@ -347,7 +346,9 @@ void ProcessAndRenderPointCloud(Renderer& renderer, pcl::PointCloud<pcl::PointXY
             ++clusterId;
             j++;
         }
+
     }
+    renderer.RenderPointCloud(cloud_filtered, "FilteredCloud" + std::to_string(j), colors[1]);
 }
 
 
@@ -368,7 +369,7 @@ int main(int argc, char* argv[])
     pcl::PointCloud<pcl::PointXYZ>::Ptr input_cloud(new pcl::PointCloud<pcl::PointXYZ>);
 
     std::vector<boost::filesystem::path> stream(
-        boost::filesystem::directory_iterator{"/home/linux/Desktop/Autonomous_vehicles/assignment_1/datasets/dataset_2"},
+        boost::filesystem::directory_iterator{"/home/linux/Desktop/Autonomous_vehicles/assignment_1/datasets/dataset_1"},
         boost::filesystem::directory_iterator{});
 
     // sort files in ascending (chronological) order
